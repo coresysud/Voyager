@@ -1,5 +1,6 @@
 #include "BootMgfw.h"
 #include "SplashScreen.h"
+#include "WinLoad.h"
 
 INLINE_HOOK BootMgfwShitHook;
 EFI_STATUS EFIAPI RestoreBootMgfw(VOID)
@@ -228,13 +229,17 @@ EFI_STATUS EFIAPI ArchStartBootApplicationHook(VOID* AppEntry, VOID* ImageBase, 
 		gST->ConOut->OutputString(gST->ConOut, AsciiArt);
 		Print(L"\n");
 
+		VOID* OslFwpKernelSetupPhase1 = GetExport(ImageBase, "OslFwpKernelSetupPhase1");
+
 		Print(L"Hyper-V PayLoad Size -> 0x%x\n", PayLoadSize());
 		Print(L"winload.BlImgLoadPEImageEx -> 0x%p\n", RESOLVE_RVA(ImgLoadPEImageEx, 10, 6));
 		MakeInlineHook(&WinLoadImageShitHook, RESOLVE_RVA(ImgLoadPEImageEx, 10, 6), &BlImgLoadPEImageEx, TRUE);
+		MakeInlineHook(NULL, OslFwpKernelSetupPhase1, &OslFwpKernelSetupPhase1, TRUE);
 	}
 	else // else the installed windows version is between 2004 and 1709
 	{
 		VOID* LdrLoadImage = GetExport(ImageBase, "BlLdrLoadImage");
+		VOID* OslFwpKernelSetupPhase1 = GetExport(ImageBase, "OslFwpKernelSetupPhase1");
 		VOID* ImgAllocateImageBuffer =
 			FindPattern(
 				ImageBase,
@@ -253,6 +258,7 @@ EFI_STATUS EFIAPI ArchStartBootApplicationHook(VOID* AppEntry, VOID* ImageBase, 
 
 		MakeInlineHook(&WinLoadImageShitHook, LdrLoadImage, &BlLdrLoadImage, TRUE);
 		MakeInlineHook(&WinLoadAllocateImageHook, RESOLVE_RVA(ImgAllocateImageBuffer, 5, 1), &BlImgAllocateImageBuffer, TRUE);
+		MakeInlineHook(NULL, OslFwpKernelSetupPhase1, &OslFwpKernelSetupPhase1, TRUE);
 	}
 	return ((IMG_ARCH_START_BOOT_APPLICATION)BootMgfwShitHook.Address)(AppEntry, ImageBase, ImageSize, BootOption, ReturnArgs);
 }

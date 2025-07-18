@@ -1,4 +1,5 @@
 #include "WinLoad.h"
+#include "Driver.h"
 
 INLINE_HOOK WinLoadImageShitHook;
 INLINE_HOOK WinLoadAllocateImageHook;
@@ -94,6 +95,13 @@ EFI_STATUS EFIAPI BlLdrLoadImage
 		TableEntry->SizeOfImage = NT_HEADER(TableEntry->ModuleBase)->OptionalHeader.SizeOfImage;
 	}
 	return Result;
+}
+
+VOID OslFwpKernelSetupPhase1(PLOADER_PARAMETER_BLOCK a1)
+{
+	UINT64 ImageBase;
+	UINT32 ImageSize;
+	LoadDriver(L"driver.sys", L"driver.sys", &ImageBase, &ImageSize);
 }
 
 EFI_STATUS EFIAPI BlImgLoadPEImageEx

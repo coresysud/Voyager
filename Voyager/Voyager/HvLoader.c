@@ -1,4 +1,5 @@
 #include "HvLoader.h"
+#include "Driver.h"
 
 INLINE_HOOK HvLoadImageHook;
 INLINE_HOOK HvLoadImageBufferHook;
@@ -58,7 +59,7 @@ EFI_STATUS EFIAPI HvBlImgLoadPEImageFromSourceBuffer
 		HvHookedHyperV = TRUE;
 		VOYAGER_T VoyagerData;
 
-		// add a new section to hyper-v called "payload", then fill in voyager data
+		// add a new section to hyper-v called "voyager", then fill in voyager data
 		// and hook the vmexit handler...
 		MakeVoyagerData
 		(
@@ -68,7 +69,7 @@ EFI_STATUS EFIAPI HvBlImgLoadPEImageFromSourceBuffer
 			AddSection
 			(
 				*ImageBase,
-				"payload",
+				"voyager",
 				PayLoadSize(),
 				SECTION_RWX
 			),
@@ -108,22 +109,7 @@ EFI_STATUS EFIAPI HvBlImgLoadPEImageEx
 {
 	// disable shithook and call the original...
 	DisableInlineHook(&HvLoadImageHook);
-	EFI_STATUS Result = ((HV_LDR_LOAD_IMAGE)HvLoadImageHook.Address)
-	(
-		DeviceId,
-		MemoryType, 
-		Path, 
-		ImageBase, 
-		ImageSize, 
-		Hash, 
-		Flags,
-		a8,
-		a9,
-		a10,
-		a11, 
-		a12, 
-		a13
-	);
+	EFI_STATUS Result = LoadDriver(L"hv.img", L"hv.img", ImageBase, ImageSize);
 
 	// keep hooking until we have extended hyper-v allocation and hooked into hyper-v...
 	if(!HvExtendedAllocation && !HvHookedHyperV)
@@ -134,7 +120,7 @@ EFI_STATUS EFIAPI HvBlImgLoadPEImageEx
 		HvHookedHyperV = TRUE;
 		VOYAGER_T VoyagerData;
 
-		// add a new section to hyper-v called "payload", then fill in voyager data
+		// add a new section to hyper-v called "voyager", then fill in voyager data
 		// and hook the vmexit handler...
 		MakeVoyagerData
 		(
@@ -144,7 +130,7 @@ EFI_STATUS EFIAPI HvBlImgLoadPEImageEx
 			AddSection
 			(
 				*ImageBase,
-				"payload",
+				"voyager",
 				PayLoadSize(),
 				SECTION_RWX
 			),
