@@ -46,3 +46,4 @@ BOOLEAN CheckMask(CHAR8* base, CHAR8* pattern, CHAR8* mask);
 VOID* FindPattern(CHAR8* base, UINTN size, CHAR8* pattern, CHAR8* mask);
 VOID* GetExport(UINT8* base, CHAR8* export);
 VOID MemCopy(VOID* dest, VOID* src, UINTN size);
+EFI_STATUS ReadFile(CHAR16* Path, UINT8** Buffer, UINTN* FileSize, BOOLEAN BootService);

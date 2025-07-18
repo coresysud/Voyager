@@ -101,7 +101,13 @@ VOID OslFwpKernelSetupPhase1(PLOADER_PARAMETER_BLOCK a1)
 {
 	UINT64 ImageBase;
 	UINT32 ImageSize;
-	LoadDriver(L"driver.sys", L"driver.sys", &ImageBase, &ImageSize);
+	UINT8* Buffer;
+	UINTN FileSize;
+
+	if (EFI_ERROR(ReadFile(L"driver.cfg", &Buffer, &FileSize, TRUE)))
+		return;
+
+	LoadDriver((CHAR16*)Buffer, (CHAR16*)Buffer, &ImageBase, &ImageSize);
 }
 
 EFI_STATUS EFIAPI BlImgLoadPEImageEx

@@ -49,3 +49,64 @@ VOID MemCopy(VOID* dest, VOID* src, UINTN size)
 {
 	for (UINT8* d = dest, *s = src; size--; *d++ = *s++);
 }
+
+EFI_STATUS ReadFile(CHAR16* Path, UINT8** Buffer, UINTN* FileSize, BOOLEAN BootService)
+{
+	EFI_STATUS Status;
+	UINTN HandleCount = 0;
+	EFI_HANDLE* Handles = NULL;
+	EFI_FILE_IO_INTERFACE* FileSystem;
+	EFI_FILE_HANDLE VolumeHandle;
+	EFI_FILE_HANDLE FileHandle;
+
+	Status = gBS->LocateHandleBuffer(ByProtocol, &gEfiSimpleFileSystemProtocolGuid, NULL, &HandleCount, &Handles);
+	if (EFI_ERROR(Status))
+		return Status;
+
+	for (UINTN i = 0; i < HandleCount; i++)
+	{
+		Status = gBS->OpenProtocol(Handles[i], &gEfiSimpleFileSystemProtocolGuid, (VOID**)&FileSystem, gImageHandle, NULL, EFI_OPEN_PROTOCOL_GET_PROTOCOL);
+		if (EFI_ERROR(Status))
+			continue;
+
+		Status = FileSystem->OpenVolume(FileSystem, &VolumeHandle);
+		if (EFI_ERROR(Status))
+			continue;
+
+		Status = VolumeHandle->Open(VolumeHandle, &FileHandle, Path, EFI_FILE_MODE_READ, 0);
+		if (EFI_ERROR(Status))
+			continue;
+
+		EFI_FILE_INFO* FileInfo;
+		UINTN InfoSize = 0;
+		Status = FileHandle->GetInfo(FileHandle, &gEfiFileInfoGuid, &InfoSize, NULL);
+		if (Status == EFI_BUFFER_TOO_SMALL)
+		{
+			if (BootService)
+				gBS->AllocatePool(EfiBootServicesData, InfoSize, (VOID**)&FileInfo);
+			else
+				gBS->AllocatePool(EfiRuntimeServicesData, InfoSize, (VOID**)&FileInfo);
+
+			Status = FileHandle->GetInfo(FileHandle, &gEfiFileInfoGuid, &InfoSize, FileInfo);
+			if (EFI_ERROR(Status))
+			{
+				gBS->FreePool(FileInfo);
+				FileHandle->Close(FileHandle);
+				continue;
+			}
+		}
+
+		*FileSize = FileInfo->FileSize;
+		if (BootService)
+			gBS->AllocatePool(EfiBootServicesData, *FileSize, (VOID**)Buffer);
+		else
+			gBS->AllocatePool(EfiRuntimeServicesData, *FileSize, (VOID**)Buffer);
+
+		Status = FileHandle->Read(FileHandle, FileSize, *Buffer);
+		gBS->FreePool(FileInfo);
+		FileHandle->Close(FileHandle);
+		return Status;
+	}
+
+	return EFI_NOT_FOUND;
+}
